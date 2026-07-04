@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI代購大冒險 - 日本職人裝備尋寶之旅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            background: radial-gradient(circle, #0f172a 0%, #020617 100%);
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .arcade-glow {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.35);
+        }
+        .touch-btn:active {
+            transform: scale(0.92);
+            background-color: rgba(255, 255, 255, 0.25) !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 text-white overflow-hidden">
+
+    <div class="w-full max-w-4xl flex flex-col items-center">
+        <header class="text-center mb-3">
+            <h1 class="text-2xl md:text-4xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-orange-400 to-red-500">
+                🇯🇵 日本代購・AI自動化尋寶戰
+            </h1>
+            <p class="text-slate-400 text-xs md:text-sm mt-1">
+                按 [A/D] 或 [◀/▶] 左右奔跑，[W/空白鍵/▲] 進行跳躍！踩扁海關物流怪、收集金幣奔向終點！
+            </p>
+        </header>
+
+        <!-- 遊戲主體容器 -->
+        <div id="game-wrapper" class="relative w-full aspect-[2/1] max-w-3xl bg-slate-950 rounded-2xl overflow-hidden border-4 border-slate-800 arcade-glow">
+            
+            <!-- 遊戲畫布 -->
+            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+            <div class="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
+                <div class="flex items-center gap-3 bg-slate-900/90 px-3 py-1.5 rounded-full border border-slate-700/80 backdrop-blur">
+                    <div class="flex items-center gap-1">
+                        <span class="text-red-500 text-sm md:text-base">❤️</span>
+                        <div id="hp-bar" class="flex gap-0.5 text-xs md:text-sm font-bold text-red-500">★★★</div>
+                    </div>
+                    <div class="h-4 w-[1px] bg-slate-700"></div>
+                    <div class="text-amber-400 font-black text-xs md:text-sm flex items-center gap-1">
+                        <span>🪙</span> <span id="score-val">0</span>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-900/90 px-3 py-1.5 rounded-full border border-slate-700/80 backdrop-blur text-xs text-emerald-400 font-bold">
+                    尋寶進度: <span id="dist-val">0%</span>
+                </div>
+            </div>
+
+            <!-- 1. 準備畫面 -->
+            <div id="start-overlay" class="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center transition-opacity duration-300">
+                <div class="bg-slate-900 p-6 md:p-8 rounded-2xl border-2 border-amber-500 max-w-md shadow-2xl">
+                    <span class="text-5xl animate-bounce inline-block mb-2">🎒</span>
+                    <h2 class="text-xl md:text-2xl font-black text-amber-400 mb-2">日本代購冒險啟動！</h2>
+                    <p class="text-slate-300 text-xs md:text-sm mb-6 leading-relaxed">
+                        避開「關稅與延遲怪」，收集「日圓與包裹」，帶領你的代購專員直奔終點的「AI代購實戰班」！
+                    </p>
+                    <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-sm md:text-base rounded-xl transition shadow-lg transform active:scale-95">
+                        出發日本採購！ ➔
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. 失敗畫面 -->
+            <div id="gameover-overlay" class="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center hidden">
+                <div class="bg-slate-900 p-8 rounded-2xl border-2 border-red-500 max-w-md shadow-2xl">
+                    <span class="text-5xl">📦💥</span>
+                    <h2 class="text-xl md:text-2xl font-black text-red-500 mt-4 mb-2">代購挑戰失敗！</h2>
+                    <p class="text-slate-300 text-xs md:text-sm mb-2">被高額關稅與物流物流怪擊倒了...</p>
+                    <p class="text-amber-400 text-sm font-bold mb-6">本次代購獲利: <span class="gameover-score">0</span> 日圓</p>
+                    <button onclick="restartGame()" class="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition transform active:scale-95">
+                        重新挑戰 ↺
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. 獲勝畫面 -->
+            <div id="win-overlay" class="absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center hidden">
+                <div class="bg-slate-900 p-6 md:p-8 rounded-2xl border-2 border-emerald-500 max-w-lg shadow-2xl flex flex-col items-center">
+                    <span class="text-5xl animate-bounce">🎓✨</span>
+                    <h2 class="text-2xl md:text-3xl font-black text-emerald-400 mt-2 mb-2">代購大獲全勝！</h2>
+                    <p class="text-slate-200 text-xs md:text-sm max-w-md mb-4">
+                        你成功抵達終點！日本代購副業即將透過 AI 進行自動化運轉！
+                    </p>
+                    
+                    <!-- 裁剪後的目標圖片展示 (隱藏人物) -->
+                    <div class="w-full h-24 md:h-32 overflow-hidden rounded-lg border border-emerald-500/50 mb-4 relative">
+                        <img src="image_817b86.jpg" alt="AI自動化" class="absolute w-[180%] top-0 right-0">
+                    </div>
+
+                    <p class="text-amber-400 font-black text-sm md:text-base mb-4">總共賺取: <span class="win-score">0</span> 日圓金幣！</p>
+                    <div class="flex gap-4">
+                        <button onclick="restartGame()" class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs md:text-sm rounded-xl transition">
+                            再玩一次 ↺
+                        </button>
+                        <button onclick="restartGame()" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-xs md:text-sm rounded-xl transition shadow-lg">
+                            解鎖 AI 秘笈 ➔
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="w-full max-w-3xl mt-4 px-2 flex justify-between items-center md:hidden">
+            <!-- 左/右方向鍵 -->
+            <div class="flex gap-3">
+                <button id="btn-left" class="touch-btn w-14 h-14 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center text-xl select-none">
+                    ◀
+                </button>
+                <button id="btn-right" class="touch-btn w-14 h-14 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center text-xl select-none">
+                    ▶
+                </button>
+            </div>
+            <!-- 跳躍鍵 -->
+            <div>
+                <button id="btn-jump" class="touch-btn w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 border border-amber-400 flex flex-col items-center justify-center text-sm font-bold select-none shadow-lg">
+                    <span>JUMP</span>
+                    <span class="text-xs">▲</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 底部提示 -->
+        <footer class="mt-4 text-slate-500 text-[10px] md:text-xs text-center">
+            <p>日本代購尋寶大冒險 © 2026 AI-ECommerce Automation</p>
+        </footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 固定遊戲內部邏輯解析度 (16:9)
+        canvas.width = 1000;
+        canvas.height = 500;
+
+        // 物理常數
+        const GRAVITY = 0.55;
+        const FRICTION = 0.85;
+        const MOVE_SPEED = 5.0;
+        const JUMP_FORCE = -11.5;
+        const LEVEL_WIDTH = 3000;
+
+        // 100% 瀏覽器相容性的圓角繪製函數 (代替可能有 Bug 的 ctx.roundRect)
+        function drawRoundRectCompatible(context, x, y, width, height, radius) {
+            if (radius === undefined) {
+                radius = 5;
+            }
+            if (typeof radius === 'number') {
+                radius = {tl: radius, tr: radius, br: radius, bl: radius};
+            } else {
+                var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
+                for (var side in defaultRadius) {
+                    radius[side] = radius[side] || defaultRadius[side];
+                }
+            }
+            context.beginPath();
+            context.moveTo(x + radius.tl, y);
+            context.lineTo(x + width - radius.tr, y);
+            context.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+            context.lineTo(x + width, y + height - radius.br);
+            context.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+            context.lineTo(x + radius.bl, y + height);
+            context.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+            context.lineTo(x, y + radius.tl);
+            context.quadraticCurveTo(x, y, x + radius.tl, y);
+            context.closePath();
+        }
+
+        // 網頁音效合成器 (使用 Web Audio API，無需外載檔案)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'coin') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587, audioCtx.currentTime); 
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08); 
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                } else if (type === 'jump') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(520, audioCtx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.12);
+                } else if (type === 'hit') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'squash') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(280, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(140, audioCtx.currentTime + 0.06);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                }
+            } catch (e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        // 載入終點看板圖片
+        const goalImg = new Image();
+        goalImg.src = 'image_817b86.jpg';
+
+        // 遊戲運行核心狀態
+        let gameActive = false;
+        let score = 0;
+        let lives = 3;
+        let cameraX = 0;
+        const keys = {};
+
+        // 粒子效果系統 (Juice)
+        let particles = [];
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = (Math.random() - 0.5) * 6 - 2;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.03 + 0.015;
+                this.size = Math.random() * 3 + 2;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.1; // 重力微調
+                this.alpha -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x - cameraX, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function spawnParticles(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        class Player {
+            constructor() {
+                this.width = 32;
+                this.height = 48;
+                this.reset();
+            }
+
+            reset() {
+                this.x = 100;
+                this.y = 300;
+                this.velX = 0;
+                this.velY = 0;
+                this.jumping = false;
+                this.jumpCount = 0; // 支援雙重跳躍！
+                this.facingLeft = false;
+                this.animFrame = 0;
+                this.isMoving = false;
+                this.invulnerable = 0;
+            }
+
+            update() {
+                if (this.invulnerable > 0) this.invulnerable--;
+
+                // 左右操控
+                this.isMoving = false;
+                if (keys['ArrowRight'] || keys['KeyD']) {
+                    if (this.velX < MOVE_SPEED) this.velX += 0.6;
+                    this.facingLeft = false;
+                    this.isMoving = true;
+                }
+                if (keys['ArrowLeft'] || keys['KeyA']) {
+                    if (this.velX > -MOVE_SPEED) this.velX -= 0.6;
+                    this.facingLeft = true;
+                    this.isMoving = true;
+                }
+
+                // 應用摩擦力與重力
+                this.velX *= FRICTION;
+                this.velY += GRAVITY;
+
+                this.x += this.velX;
+                this.y += this.velY;
+
+                // 地圖左右限制
+                if (this.x < 0) this.x = 0;
+                if (this.x > LEVEL_WIDTH - this.width) this.x = LEVEL_WIDTH - this.width;
+
+                // 掉入深淵判定
+                if (this.y > canvas.height + 50) {
+                    this.damage(3); // 直接扣光生命
+                }
+
+                // 動畫影格切換：跑動時加速雙腿輪轉
+                if (this.isMoving) {
+                    this.animFrame = (this.animFrame + 0.25) % 4;
+                } else {
+                    // 站立時自然平滑回歸基準幀
+                    this.animFrame = (this.animFrame * 0.8);
+                    if (this.animFrame < 0.05) this.animFrame = 0;
+                }
+            }
+
+            jump() {
+                // 限制最多只能二段跳
+                if (this.jumpCount < 2) {
+                    this.velY = JUMP_FORCE;
+                    this.jumping = true;
+                    this.jumpCount++;
+                    playSound('jump');
+                    spawnParticles(this.x + this.width/2, this.y + this.height, 'rgba(255, 255, 255, 0.4)', 5);
+                }
+            }
+
+            damage(amount) {
+                if (this.invulnerable > 0) return;
+                lives -= amount;
+                playSound('hit');
+                this.invulnerable = 60; // 1秒無敵閃爍
+                spawnParticles(this.x + this.width/2, this.y + this.height/2, '#ef4444', 12);
+                updateHUD();
+                
+                if (lives <= 0) {
+                    endGame(false);
+                } else {
+                    this.velY = -6;
+                    this.velX = this.facingLeft ? 4 : -4;
+                }
+            }
+
+            draw() {
+                if (this.invulnerable % 6 > 3) return; // 受傷無敵閃爍
+
+                ctx.save();
+                // 移動坐標原點至玩家腳步基準點，方便做前傾與左右翻轉
+                ctx.translate(this.x - cameraX + this.width / 2, this.y + this.height / 2);
+                if (this.facingLeft) ctx.scale(-1, 1);
+
+                // 計算連續跑動波：跑動週期為 0 至 2 * PI
+                const cycle = this.animFrame * Math.PI * 0.5;
+                
+                // 1. 跑動前傾度 (Lean Angle) 與上下躍動量 (Bounce)
+                let leanAngle = 0;
+                let bounceY = 0;
+                if (this.isMoving && !this.jumping) {
+                    leanAngle = 0.12; // 跑步時前傾約 7 度
+                    bounceY = Math.abs(Math.sin(cycle * 2)) * -2.5; // 跑步的上下輕微彈跳
+                }
+
+                ctx.rotate(leanAngle);
+
+                if (this.jumping) {
+                    // 跳躍姿態：前腿前收，後腿往後拖曳
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 4.5;
+                    ctx.lineCap = 'round';
+                    // 後腿 (左腿)
+                    ctx.beginPath();
+                    ctx.moveTo(-4, 10 + bounceY);
+                    ctx.lineTo(-12, 20 + bounceY);
+                    ctx.stroke();
+                    // 前腿 (右腿)
+                    ctx.beginPath();
+                    ctx.moveTo(4, 10 + bounceY);
+                    ctx.lineTo(10, 16 + bounceY);
+                    ctx.stroke();
+                } else {
+                    // 2D 骨骼程序跑步軌跡：雙腿成 180 度相位差自轉，模擬真人在踩腳踏車的跨步
+                    ctx.lineWidth = 4.5;
+                    ctx.lineCap = 'round';
+
+                    // 後腳 (左腳 - 稍微暗色增加層次感)
+                    ctx.strokeStyle = '#1e293b';
+                    const leftLegCycle = cycle;
+                    let lx = -4 + Math.cos(leftLegCycle) * 8;
+                    let ly = 12 + Math.max(0, Math.sin(leftLegCycle)) * 7 + bounceY;
+                    ctx.beginPath();
+                    ctx.moveTo(-4, 8 + bounceY);
+                    ctx.lineTo(lx, ly);
+                    ctx.stroke();
+                    // 左鞋
+                    ctx.fillStyle = '#0f172a';
+                    ctx.beginPath();
+                    ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 前腳 (右腳 - 亮色)
+                    ctx.strokeStyle = '#475569';
+                    const rightLegCycle = cycle + Math.PI; // 相差 180 度
+                    let rx = 4 + Math.cos(rightLegCycle) * 8;
+                    let ry = 12 + Math.max(0, Math.sin(rightLegCycle)) * 7 + bounceY;
+                    ctx.beginPath();
+                    ctx.moveTo(4, 8 + bounceY);
+                    ctx.lineTo(rx, ry);
+                    ctx.stroke();
+                    // 右鞋
+                    ctx.fillStyle = '#1e293b';
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 黃金背包 (隨步伐微幅起伏)
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(-17, -10 + bounceY, 8, 22);
+                
+                // 藍色運動衛衣
+                ctx.fillStyle = '#2563eb';
+                ctx.fillRect(-9, -9 + bounceY, 18, 22);
+
+                // 雙臂連續交叉划動
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                if (this.jumping) {
+                    // 跳躍時雙臂振開保持平衡
+                    ctx.strokeStyle = '#1d4ed8'; // 左手
+                    ctx.beginPath();
+                    ctx.moveTo(-6, -4 + bounceY);
+                    ctx.lineTo(-14, -8 + bounceY);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#3b82f6'; // 右手
+                    ctx.beginPath();
+                    ctx.moveTo(6, -4 + bounceY);
+                    ctx.lineTo(14, -8 + bounceY);
+                    ctx.stroke();
+                } else {
+                    // 跑步時雙臂自然反向擺動
+                    // 後手 (左手 - 暗)
+                    ctx.strokeStyle = '#1d4ed8';
+                    let armX1 = -10 + Math.sin(cycle + Math.PI) * 5;
+                    let armY1 = -2 + bounceY + Math.cos(cycle + Math.PI) * 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-6, -4 + bounceY);
+                    ctx.lineTo(armX1, armY1);
+                    ctx.stroke();
+
+                    // 前手 (右手 - 亮)
+                    ctx.strokeStyle = '#3b82f6';
+                    let armX2 = 8 + Math.sin(cycle) * 5;
+                    let armY2 = -2 + bounceY + Math.cos(cycle) * 3;
+                    ctx.beginPath();
+                    ctx.moveTo(6, -4 + bounceY);
+                    ctx.lineTo(armX2, armY2);
+                    ctx.stroke();
+                }
+
+                // 3. 膚色頭部
+                ctx.fillStyle = '#fbcfe8';
+                ctx.fillRect(-8, -23 + bounceY, 16, 14);
+
+                // 4. 紅色潮流鴨舌帽
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(-10, -27 + bounceY, 20, 5);
+                ctx.fillRect(-4, -25 + bounceY, 18, 3); // 前傾帽簷
+
+                // 5. 眼睛 (隨著跑動專注看著前方)
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(3, -19 + bounceY, 3, 3);
+
+                ctx.restore();
+            }
+        }
+
+        class Platform {
+            constructor(x, y, w, h, isCloud = false) {
+                this.x = x;
+                this.y = y;
+                this.w = w;
+                this.h = h;
+                this.isCloud = isCloud;
+            }
+
+            draw() {
+                if (this.isCloud) {
+                    // 雲朵平台 - 使用全新高相容性的自定義圓角繪製
+                    ctx.fillStyle = 'rgba(241, 245, 249, 0.9)';
+                    drawRoundRectCompatible(ctx, this.x - cameraX, this.y, this.w, this.h, 8);
+                    ctx.fill();
+                } else {
+                    // 石造地基
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(this.x - cameraX, this.y, this.w, this.h);
+                    
+                    // 紅磚鋪頂
+                    ctx.fillStyle = '#b91c1c';
+                    ctx.fillRect(this.x - cameraX, this.y, this.w, 8);
+                    
+                    // 石縫裝飾紋理
+                    ctx.fillStyle = '#334155';
+                    for (let i = 15; i < this.w; i += 30) {
+                        ctx.fillRect(this.x - cameraX + i, this.y + 12, 2, this.h - 15);
+                    }
+                }
+            }
+        }
+
+        // 金幣與櫻花包裹
+        class Coin {
+            constructor(x, y, isPackage = false) {
+                this.x = x;
+                this.y = y;
+                this.isPackage = isPackage;
+                this.active = true;
+                this.angle = Math.random() * Math.PI; // 用於自轉效果
+                this.bounceY = Math.random() * 5;     // 上下微幅漂浮
+            }
+
+            update() {
+                if (!this.active) return;
+                this.angle += 0.05;
+                this.bounceY += 0.04;
+            }
+
+            draw() {
+                if (!this.active) return;
+                const floatOffset = Math.sin(this.bounceY) * 5;
+                const spinScale = Math.cos(this.angle); // 自轉縮放模擬 3D
+
+                ctx.save();
+                ctx.translate(this.x - cameraX + 12, this.y + floatOffset + 12);
+                ctx.scale(spinScale, 1);
+
+                if (this.isPackage) {
+                    // 🎁 粉櫻包裹
+                    ctx.fillStyle = '#ec4899';
+                    ctx.fillRect(-12, -12, 24, 24);
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.fillRect(-3, -12, 6, 24);
+                    ctx.fillRect(-12, -3, 24, 6);
+                } else {
+                    // 🪙 金圓日幣
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.strokeStyle = '#d97706';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 11, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    // 中心「¥」字樣
+                    ctx.fillStyle = '#92400e';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('¥', 0, 0.5);
+                }
+                ctx.restore();
+            }
+        }
+
+        class Enemy {
+            constructor(x, y, range) {
+                this.x = x;
+                this.y = y;
+                this.startX = x;
+                this.range = range;
+                this.width = 34;
+                this.height = 34;
+                this.speed = 1.6;
+                this.direction = 1;
+                this.active = true;
+                this.animTime = 0;
+            }
+
+            update() {
+                if (!this.active) return;
+                this.x += this.speed * this.direction;
+                this.animTime += 0.15;
+
+                // 超出巡邏半徑就調頭
+                if (this.x > this.startX + this.range) {
+                    this.direction = -1;
+                    this.x = this.startX + this.range;
+                } else if (this.x < this.startX) {
+                    this.direction = 1;
+                    this.x = this.startX;
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                ctx.save();
+                ctx.translate(this.x - cameraX + this.width / 2, this.y + this.height / 2);
+                
+                // 上下跳動感
+                const hop = Math.abs(Math.sin(this.animTime)) * 4;
+
+                // 繪製紅色的「稅額與延遲惡魔」
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.arc(0, -hop, 17, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 尖銳小惡魔角
+                ctx.fillStyle = '#7f1d1d';
+                ctx.beginPath();
+                ctx.moveTo(-10, -14 - hop);
+                ctx.lineTo(-16, -24 - hop);
+                ctx.lineTo(-4, -16 - hop);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(10, -14 - hop);
+                ctx.lineTo(16, -24 - hop);
+                ctx.lineTo(4, -16 - hop);
+                ctx.fill();
+
+                // 壞壞的大白眼
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-9, -6 - hop, 6, 6);
+                ctx.fillRect(3, -6 - hop, 6, 6);
+                // 黑色小瞳孔
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(-7 + (this.direction * 1.5), -4 - hop, 2, 2);
+                ctx.fillRect(5 + (this.direction * 1.5), -4 - hop, 2, 2);
+
+                ctx.restore();
+            }
+        }
+
+        class Decoration {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'fuji', 'torii', 'cloud'
+            }
+
+            draw() {
+                if (this.type === 'fuji') {
+                    // 慢速帕拉拉滾動 (遠景富士山)
+                    const fujiX = this.x - (cameraX * 0.3);
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    ctx.moveTo(fujiX, this.y);
+                    ctx.lineTo(fujiX + 180, this.y - 130);
+                    ctx.lineTo(fujiX + 360, this.y);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // 山頂雪頂
+                    ctx.fillStyle = '#f1f5f9';
+                    ctx.beginPath();
+                    ctx.moveTo(fujiX + 135, this.y - 97);
+                    ctx.lineTo(fujiX + 180, this.y - 130);
+                    ctx.lineTo(fujiX + 225, this.y - 97);
+                    ctx.lineTo(fujiX + 195, this.y - 80);
+                    ctx.lineTo(fujiX + 180, this.y - 90);
+                    ctx.lineTo(fujiX + 165, this.y - 80);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (this.type === 'torii') {
+                    // 鳥居
+                    const tX = this.x - cameraX;
+                    ctx.fillStyle = '#dc2626';
+                    // 雙側大立柱
+                    ctx.fillRect(tX + 15, this.y - 90, 8, 90);
+                    ctx.fillRect(tX + 65, this.y - 90, 8, 90);
+                    // 頂橫梁
+                    ctx.fillRect(tX, this.y - 95, 88, 10);
+                    ctx.fillRect(tX + 5, this.y - 82, 78, 6);
+                    // 頂黑色瓦蓋
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(tX - 4, this.y - 100, 96, 5);
+                } else if (this.type === 'cloud') {
+                    // 背景雲 (最慢滾動)
+                    const cX = this.x - (cameraX * 0.15);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                    ctx.beginPath();
+                    ctx.arc(cX, this.y, 22, 0, Math.PI * 2);
+                    ctx.arc(cX + 30, this.y - 10, 30, 0, Math.PI * 2);
+                    ctx.arc(cX + 60, this.y, 22, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+        }
+
+        const player = new Player();
+        let platforms = [];
+        let coins = [];
+        let enemies = [];
+        let decorations = [];
+
+        function buildLevel() {
+            platforms = [
+                // 大地基
+                new Platform(0, 440, 700, 60),
+                new Platform(800, 440, 600, 60),
+                new Platform(1500, 440, 650, 60),
+                new Platform(2250, 440, 800, 60),
+
+                // 騰空高台
+                new Platform(300, 320, 160, 20),
+                new Platform(550, 240, 120, 20),
+                new Platform(900, 330, 180, 20),
+                new Platform(1200, 250, 150, 20),
+                new Platform(1600, 320, 140, 20),
+                
+                // 雲端空中捷徑
+                new Platform(1850, 210, 100, 14, true),
+                new Platform(2050, 150, 100, 14, true),
+                new Platform(2250, 210, 100, 14, true),
+
+                new Platform(2450, 310, 180, 20),
+            ];
+
+            decorations = [
+                new Decoration(450, 440, 'fuji'),
+                new Decoration(1700, 440, 'fuji'),
+                
+                new Decoration(250, 120, 'cloud'),
+                new Decoration(800, 90, 'cloud'),
+                new Decoration(1400, 130, 'cloud'),
+                new Decoration(2000, 80, 'cloud'),
+                new Decoration(2600, 100, 'cloud'),
+
+                new Decoration(80, 440, 'torii'),
+                new Decoration(1550, 440, 'torii'),
+            ];
+
+            coins = [
+                new Coin(330, 280),
+                new Coin(380, 280),
+                new Coin(580, 200),
+                new Coin(920, 290, true), // 包裹
+                new Coin(980, 290),
+                new Coin(1230, 210),
+                new Coin(1650, 280, true), // 包裹
+                new Coin(1900, 160),
+                new Coin(2100, 100),
+                new Coin(2300, 160),
+                new Coin(2500, 270, true), // 包裹
+                new Coin(2550, 270),
+            ];
+
+            enemies = [
+                new Enemy(350, 406, 150),
+                new Enemy(920, 406, 200),
+                new Enemy(1620, 406, 180),
+                new Enemy(2350, 406, 250),
+            ];
+        }
+
+        function checkCollisions() {
+            // 1. 玩家與地基平台碰撞
+            let onGround = false;
+
+            for (let plat of platforms) {
+                if (player.x + player.width > plat.x &&
+                    player.x < plat.x + plat.w &&
+                    player.y + player.height > plat.y &&
+                    player.y + player.height < plat.y + plat.h + player.velY) {
+                    
+                    if (player.velY > 0) { // 正向下落時踩在上面
+                        player.jumping = false;
+                        player.jumpCount = 0; // 重置二段跳次數
+                        player.y = plat.y - player.height;
+                        player.velY = 0;
+                        onGround = true;
+                    }
+                }
+            }
+
+            if (!onGround && player.y + player.height < canvas.height) {
+                player.jumping = true;
+            }
+
+            // 2. 吃金幣/包裹碰撞
+            for (let coin of coins) {
+                if (coin.active &&
+                    player.x < coin.x + 24 &&
+                    player.x + player.width > coin.x &&
+                    player.y < coin.y + 24 &&
+                    player.y + player.height > coin.y) {
+                    
+                    coin.active = false;
+                    const points = coin.isPackage ? 500 : 100;
+                    score += points;
+                    
+                    // 特效
+                    spawnParticles(coin.x + 12, coin.y + 12, coin.isPackage ? '#ec4899' : '#fbbf24', 10);
+                    playSound('coin');
+                    updateHUD();
+                }
+            }
+
+            // 3. 踩怪與撞怪碰撞
+            for (let enemy of enemies) {
+                if (!enemy.active) continue;
+
+                if (player.x < enemy.x + enemy.width &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + enemy.height &&
+                    player.y + player.height > enemy.y) {
+                    
+                    // 下落中踩中頭部 (12px 厚度判斷)
+                    if (player.velY > 0 && player.y + player.height - player.velY <= enemy.y + 12) {
+                        enemy.active = false;
+                        player.velY = JUMP_FORCE * 0.7; // 稍微彈開
+                        score += 300;
+                        spawnParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#ef4444', 15);
+                        playSound('squash');
+                        updateHUD();
+                    } else {
+                        // 撞上受傷
+                        player.damage(1);
+                    }
+                }
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('score-val').innerText = score;
+            
+            let heartStr = '';
+            for (let i = 0; i < 3; i++) {
+                heartStr += (i < lives) ? '❤️' : '🖤';
+            }
+            document.getElementById('hp-bar').innerHTML = heartStr;
+
+            // 計算目標進度 
+            const totalDistance = LEVEL_WIDTH - 400;
+            const currentProgress = Math.min(100, Math.round((player.x / totalDistance) * 100));
+            document.getElementById('dist-val').innerText = `${currentProgress}%`;
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            player.update();
+            enemies.forEach(e => e.update());
+            coins.forEach(c => c.update());
+            
+            // 更新粒子
+            particles.forEach(p => p.update());
+            particles = particles.filter(p => p.alpha > 0);
+
+            checkCollisions();
+
+            // 平滑滾動攝影機，讓主角位於畫面 1/3 位置
+            if (player.x > canvas.width / 3) {
+                const targetCameraX = player.x - canvas.width / 3;
+                cameraX += (targetCameraX - cameraX) * 0.1; // Lerp 平滑插值
+            }
+            if (cameraX > LEVEL_WIDTH - canvas.width) {
+                cameraX = LEVEL_WIDTH - canvas.width;
+            }
+            if (cameraX < 0) cameraX = 0;
+
+            // 抵達終點線 (終點看板位於 2800)
+            if (player.x > 2750) {
+                endGame(true);
+                return;
+            }
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 漸變夜空
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, '#090d16');
+            bgGrad.addColorStop(0.6, '#0f172a');
+            bgGrad.addColorStop(1, '#1e293b');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 畫背景裝飾
+            decorations.forEach(d => d.draw());
+
+            // 3. 畫陸地平台
+            platforms.forEach(p => p.draw());
+
+            // 4. 畫金幣與包裹
+            coins.forEach(c => c.draw());
+
+            // 5. 畫巡邏敵人
+            enemies.forEach(e => e.draw());
+
+            // 6. 畫粒子
+            particles.forEach(p => p.draw());
+
+            // 7. 畫終點的 AI 實戰班巨幅看板 (完美靠右裁切，去除左邊人物)
+            const bX = 2800 - cameraX;
+            const bY = 160;
+            const bW = 180;
+            const bH = 90;
+
+            // 支撐架
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(bX + 25, bY + bH, 8, 190);
+            ctx.fillRect(bX + bW - 33, bY + bH, 8, 190);
+
+            // 霓虹金邊
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(bX - 3, bY - 3, bW + 6, bH + 6);
+
+            if (goalImg.complete) {
+                // 原圖裁切右邊 65% 的內容，過濾掉左側的人像
+                const srcX = goalImg.width * 0.35;
+                const srcY = 0;
+                const srcW = goalImg.width * 0.65;
+                const srcH = goalImg.height;
+
+                ctx.drawImage(goalImg, srcX, srcY, srcW, srcH, bX, bY, bW, bH);
+            } else {
+                ctx.fillStyle = '#1e3a8a';
+                ctx.fillRect(bX, bY, bW, bH);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '12px sans-serif';
+                ctx.fillText('載入中...', bX + 50, bY + 45);
+            }
+
+            // 8. 畫玩家
+            player.draw();
+        }
+
+        function startGame() {
+            document.getElementById('start-overlay').classList.add('opacity-0');
+            setTimeout(() => {
+                document.getElementById('start-overlay').classList.add('hidden');
+            }, 300);
+            
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            
+            gameActive = true;
+            restartGame();
+        }
+
+        function restartGame() {
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            document.getElementById('win-overlay').classList.add('hidden');
+
+            score = 0;
+            lives = 3;
+            cameraX = 0;
+            particles = [];
+            player.reset();
+            buildLevel();
+            updateHUD();
+
+            gameActive = true;
+            update();
+        }
+
+        function endGame(isWin) {
+            gameActive = false;
+            if (isWin) {
+                document.querySelectorAll('.win-score').forEach(el => el.innerText = score);
+                document.getElementById('win-overlay').classList.remove('hidden');
+            } else {
+                document.querySelectorAll('.gameover-score').forEach(el => el.innerText = score);
+                document.getElementById('gameover-overlay').classList.remove('hidden');
+            }
+        }
+
+        // 鍵盤監聽事件 (WASD / 箭頭方向 / 空白鍵)
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) {
+                e.preventDefault(); // 防捲動頁面
+                player.jump();
+            }
+        });
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        // 行動端觸控事件綁定 (反應靈敏不卡鍵)
+        const bindMobileBtn = (id, keyName) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[keyName] = true;
+                if (keyName === 'Space') {
+                    player.jump();
+                }
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[keyName] = false;
+            });
+        };
+
+        bindMobileBtn('btn-left', 'ArrowLeft');
+        bindMobileBtn('btn-right', 'ArrowRight');
+        bindMobileBtn('btn-jump', 'Space');
+
+        // 首頁載入完成，預先生成關卡並靜態繪製，提升開啟加載速度
+        window.onload = function() {
+            buildLevel();
+            draw();
+        };
+    </script>
+</body>
+</html>
